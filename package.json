@@ -1,8 +1,8 @@
 {
   "name": "linux-helper-study",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Офлайн настольный учебник Linux, Bash, сетей и Python",
-  "author": "Linux Helper contributors",
+  "author": "Linux Helper contributors <76899565+reasqq@users.noreply.github.com>",
   "license": "MIT",
   "main": "electron/main.cjs",
   "type": "module",
