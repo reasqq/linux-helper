@@ -30,6 +30,9 @@ jobs:
       - run: npm ci
       - run: npm test
       - run: npm run ${{ matrix.script }}
+      - name: Smoke test packaged Windows app
+        if: runner.os == 'Windows'
+        run: node scripts/smoke-update.mjs
       - uses: actions/upload-artifact@v4
         with:
           name: linux-helper-${{ matrix.artifact }}
@@ -44,6 +47,7 @@ jobs:
     needs: build
     runs-on: ubuntu-24.04
     steps:
+      - uses: actions/checkout@v4
       - uses: actions/download-artifact@v4
         with:
           pattern: linux-helper-*
@@ -52,11 +56,5 @@ jobs:
       - uses: softprops/action-gh-release@v2
         with:
           name: Linux Helper ${{ github.ref_name }}
-          body: |
-            Первый выпуск Linux Helper: 100 уроков на русском языке, 16 учебных путей в пяти этапах, 42 инструмента и 21 метод пентеста в справочниках, расширенный поиск, интерактивная схема chmod, самопроверка, правовые нормы и локальный прогресс с XP.
-
-            Windows 10: скачайте portable .exe или установщик .exe.
-            Kali Linux: скачайте .AppImage (после загрузки выполните `chmod +x Linux-Helper-*.AppImage`) или пакет .deb.
-
-            Приложение работает офлайн. Windows и Linux пакеты собраны в GitHub Actions; файлы не подписаны цифровой подписью.
+          body_path: RELEASE_NOTES.md
           files: release/*

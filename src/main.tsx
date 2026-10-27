@@ -8,20 +8,13 @@ import { methods } from './methods';
 import { LessonVisual } from './LessonVisual';
 import { ToolPage, ToolsPage } from './ToolCatalog';
 import { MethodPage, MethodsPage } from './MethodAtlas';
-import { computeXp } from './progress';
+import { computeXp, loadProgress, saveProgress, type Progress } from './progress';
+import { ProgressTransfer } from './ProgressTransfer';
+import { exercises } from './exercises';
+import { ExerciseCard } from './ExerciseCard';
 import './style.css';
 
 type Page = { type: 'home' | 'paths' | 'search' | 'saved' | 'path' | 'lesson' | 'tools' | 'tool' | 'methods' | 'method' | 'about'; id?: string };
-type Progress = { completed: string[]; saved: string[]; recent: string[] };
-
-const storageKey = 'linux-helper-progress-v1';
-function readProgress(): Progress {
-  try {
-    const parsed = JSON.parse(localStorage.getItem(storageKey) || '{}');
-    return { completed: Array.isArray(parsed.completed) ? parsed.completed : [], saved: Array.isArray(parsed.saved) ? parsed.saved : [], recent: Array.isArray(parsed.recent) ? parsed.recent : [] };
-  } catch { return { completed: [], saved: [], recent: [] }; }
-}
-
 function PathIcon({ name, size = 22 }: { name: string; size?: number }) {
   const props = { size, strokeWidth: 1.9 };
   switch (name) {
@@ -38,7 +31,10 @@ function PathIcon({ name, size = 22 }: { name: string; size?: number }) {
 
 function App() {
   const [page, setPage] = useState<Page>({ type: 'home' });
-  const [progress, setProgress] = useState<Progress>(readProgress);
+  const [initial] = useState(loadProgress);
+  const [progress, setProgress] = useState<Progress>(initial.progress);
+  const [storageWarning, setStorageWarning] = useState(initial.warning);
+  const lastProgress = useRef(progress);
   const [search, setSearch] = useState('');
   const [searchPath, setSearchPath] = useState('all');
   const [toolQuery, setToolQuery] = useState('');
@@ -52,7 +48,12 @@ function App() {
   const searchRef = useRef<HTMLInputElement>(null);
   const mainRef = useRef<HTMLElement>(null);
 
-  useEffect(() => { localStorage.setItem(storageKey, JSON.stringify(progress)); }, [progress]);
+  useEffect(() => {
+    if (lastProgress.current === progress) return;
+    lastProgress.current = progress;
+    try { setStorageWarning(saveProgress(progress)); }
+    catch { setStorageWarning('Хранилище недоступно. Экспортируйте прогресс перед закрытием приложения.'); }
+  }, [progress]);
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
       if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'k') {
@@ -157,6 +158,7 @@ function App() {
     <main className="main" ref={mainRef}>
       <header className="topbar"><button className="menu-button" onClick={() => setSidebarOpen(!sidebarOpen)} aria-label="Меню"><Menu size={22} /></button><div className="topbar-crumb"><span>LINUX HELPER</span><ChevronRight size={15} /><strong>{page.type === 'home' ? 'Обзор' : page.type === 'paths' ? 'План обучения' : page.type === 'search' ? 'Поиск' : page.type === 'saved' ? 'Избранное' : page.type === 'tools' ? 'Инструменты' : page.type === 'tool' ? 'Инструмент' : page.type === 'methods' ? 'Методы' : page.type === 'method' ? 'Метод' : page.type === 'about' ? 'О программе' : activeLesson?.title || activePath?.title}</strong></div><button className="topbar-search" onClick={() => navigate({ type: 'search' })}><Search size={18} /><span>Найти команду, тему, понятие...</span><kbd>Ctrl K</kbd></button><div className="xp-badge"><Trophy size={15} /> {xp} XP</div><div className="topbar-avatar">{level}</div></header>
 
+      {storageWarning && <div className="storage-warning" role="status">{storageWarning}</div>}
       {page.type === 'home' && <div className="page home-page"><div className="eyebrow"><span className="pulse" /> ТВОЯ ЛАБОРАТОРИЯ ЗНАНИЙ</div><div className="home-hero"><div><div className="hero-kicker"><Sparkles size={15} /> УЧИСЬ ПОНИМАТЬ СИСТЕМУ</div><h1>Linux понятным<br /><em>языком.</em></h1><p>От первой команды до уверенного администрирования и основы пентеста. Теория, наглядные схемы и короткая практика — в одном офлайн приложении.</p><div className="hero-actions"><button className="primary-button" onClick={() => navigate({ type: 'lesson', id: nextLesson.id })}><Play size={17} fill="currentColor" /> {completedCount ? 'Продолжить обучение' : 'Начать обучение'} <ArrowRight size={17} /></button><button className="ghost-button" onClick={() => navigate({ type: 'paths' })}>Смотреть пути <ArrowRight size={17} /></button></div></div><div className="hero-art" aria-hidden="true"><div className="orbit orbit-one" /><div className="orbit orbit-two" /><div className="hero-terminal"><div className="term-head"><span /><span /><span /><i>~/learning/linux</i></div><div className="term-line"><b>$</b> chmod 750 script.sh</div><div className="term-output">user <em>rwx</em>　group <em>r-x</em>　other <em>---</em></div><div className="term-line"><b>$</b> <span className="cursor" /></div></div><div className="floating-chip chip-top">✦ step by step</div><div className="floating-chip chip-bottom"><CheckCircle2 size={16} /> знания в систему</div></div></div>
         <div className="stats-row"><div><span className="stat-icon stat-purple"><BookOpen size={20} /></span><strong>{lessons.length}</strong><small>подробных уроков</small></div><div><span className="stat-icon stat-orange"><Compass size={20} /></span><strong>{paths.length}</strong><small>путей обучения</small></div><div><span className="stat-icon stat-green"><CheckCircle2 size={20} /></span><strong>{completedCount}</strong><small>уроков изучено</small></div><div><span className="stat-icon stat-blue"><Trophy size={20} /></span><strong>{xp}</strong><small>очков опыта · уровень {level}</small></div></div><button className="roadmap-teaser" onClick={() => navigate({ type: 'paths' })}><span><Layers3 size={19} /><strong>Не знаешь, что изучать дальше?</strong> Есть пошаговый план из пяти этапов — от Linux до практики.</span><span>Открыть план <ArrowRight size={17} /></span></button>
         <div className="section-heading"><div><span className="section-kicker">ТВОЯ КАРТА</span><h2>Выбери направление</h2><p>Двигайся по порядку или начни с нужной темы.</p></div><button className="text-link" onClick={() => navigate({ type: 'paths' })}>Все направления <ArrowRight size={17} /></button></div><div className="path-grid">{paths.slice(0, 4).map(path => <PathCard key={path.id} path={path} />)}</div>
@@ -183,10 +185,11 @@ function App() {
             {activeLesson.id === 'chmod' && <ChmodLab />}
             <section className="study-section"><div className="section-number">03 / ПРИМЕР</div><h2>{activeLesson.path === 'legal' ? 'Пример решения' : 'Попробуй команду'}</h2><div className="terminal-block"><div className="terminal-toolbar"><span><i /><i /><i /></span><strong>{activeLesson.path === 'legal' ? 'СХЕМА' : 'TERMINAL'}</strong><button onClick={() => copyCommand(activeLesson.command)}>{copied ? <Check size={15} /> : <Copy size={15} />}{copied ? 'Скопировано' : 'Копировать'}</button></div><pre>{activeLesson.path !== 'legal' && <span className="terminal-dollar">$ </span>}{activeLesson.command}</pre></div><div className="command-explain"><Command size={19} /><p>{activeLesson.commandMeaning}</p></div><div className="expected-output"><span>ОЖИДАЕМЫЙ РЕЗУЛЬТАТ</span><pre>{activeLesson.output}</pre></div>{activeLesson.caution && <div className="caution-box"><ShieldCheck size={20} /><p>{activeLesson.caution}</p></div>}{activeLesson.sources && <div className="source-links"><span>ПРОВЕРЕННЫЕ ИСТОЧНИКИ · 27.10.2026</span>{activeLesson.sources.map(source => <a key={source.url} href={source.url} target="_blank" rel="noreferrer">{source.label} <ArrowRight size={14} /></a>)}</div>}</section>
             <section className="study-section quiz-section"><div className="section-number">04 / ПРОВЕРКА</div><h2>Проверь себя</h2><p>{activeLesson.question}</p><div className="answers">{activeLesson.answers.map((option, index) => <button key={index} className={answer === index ? (index === activeLesson.correct ? 'correct' : 'incorrect') : ''} onClick={() => setAnswer(index)}><span>{String.fromCharCode(65 + index)}</span>{option}{answer === index && (index === activeLesson.correct ? <Check size={17} /> : <X size={17} />)}</button>)}</div>{answer !== null && <div className={`answer-feedback ${answer === activeLesson.correct ? 'success' : ''}`}>{answer === activeLesson.correct ? 'Верно! Можно двигаться дальше.' : 'Почти. Перечитай объяснение и попробуй ещё раз.'}</div>}</section>
+            {exercises.filter(exercise => exercise.lessonId === activeLesson.id).map(exercise => <ExerciseCard key={exercise.id} exercise={exercise} />)}
             <div className="lesson-finish"><div><strong>Урок пройден?</strong><p>Прогресс сохранится на этом устройстве. +20 XP за урок; +100 XP за завершённый путь.</p></div><button className={progress.completed.includes(activeLesson.id) ? 'completed-button' : 'primary-button'} onClick={() => toggleCompleted(activeLesson.id)}><CheckCircle2 size={18} /> {progress.completed.includes(activeLesson.id) ? 'Изучено' : 'Отметить как изученное'}</button></div>
           </article><aside className="lesson-rail"><div className="rail-card"><span>В ЭТОМ УРОКЕ</span><a href="#" onClick={event => { event.preventDefault(); document.querySelectorAll('.study-section')[0]?.scrollIntoView({ behavior: 'smooth' }); }}>01　Теория</a><a href="#" onClick={event => { event.preventDefault(); document.querySelectorAll('.study-section')[1]?.scrollIntoView({ behavior: 'smooth' }); }}>02　Схема</a><a href="#" onClick={event => { event.preventDefault(); document.querySelector('.terminal-block')?.scrollIntoView({ behavior: 'smooth' }); }}>03　Практика</a><a href="#" onClick={event => { event.preventDefault(); document.querySelector('.quiz-section')?.scrollIntoView({ behavior: 'smooth' }); }}>04　Проверка</a></div><div className="rail-note"><Sparkles size={20} /><strong>Учись на практике</strong><p>Команды в уроках — примеры для собственной лаборатории. Перед запуском проверь путь и цель.</p></div><div className="rail-tags"><span>ТЕГИ</span><div>{activeLesson.tags.map(tag => <button key={tag} onClick={() => { setSearch(tag); navigate({ type: 'search' }); }}>{tag}</button>)}</div></div></aside></div></div>}
 
-      {page.type === 'about' && <div className="page about-page"><div className="page-intro"><span className="section-kicker">LINUX HELPER · 1.0.2</span><h1>Учись понимать, а не запоминать</h1><p>Офлайн настольное приложение для системного изучения Linux на русском языке.</p></div><div className="about-grid"><div><BookOpen size={28} /><h3>Материал по шагам</h3><p>{lessons.length} уроков, схемы, примеры команд и вопросы для самопроверки.</p></div><div><ShieldCheck size={28} /><h3>Практика в своём контуре</h3><p>Путь по администрированию и безопасности с акцентом на разрешённую лабораторную работу.</p></div><div><FolderOpen size={28} /><h3>Данные остаются у тебя</h3><p>Прогресс и закладки хранятся локально на этом устройстве. Интернет для обучения не нужен.</p></div></div><div className="about-note"><h2>Платформы</h2><p>Windows 10 и Linux. В Kali Linux используется пакет AppImage или deb. Для запуска AppImage может понадобиться сделать файл исполняемым: <code>chmod +x Linux-Helper-*.AppImage</code>.</p><a href="https://github.com/reasqq/linux-helper" target="_blank" rel="noreferrer">Исходный код и релизы <ArrowRight size={16} /></a></div></div>}
+      {page.type === 'about' && <div className="page about-page"><div className="page-intro"><span className="section-kicker">LINUX HELPER · 1.0.3</span><h1>Учись понимать, а не запоминать</h1><p>Офлайн настольное приложение для системного изучения Linux на русском языке.</p></div><ProgressTransfer progress={progress} onImport={setProgress} /><div className="about-grid"><div><BookOpen size={28} /><h3>Материал по шагам</h3><p>{lessons.length} уроков, схемы, примеры команд и вопросы для самопроверки.</p></div><div><ShieldCheck size={28} /><h3>Практика в своём контуре</h3><p>Путь по администрированию и безопасности с акцентом на разрешённую лабораторную работу.</p></div><div><FolderOpen size={28} /><h3>Данные остаются у тебя</h3><p>Прогресс и закладки хранятся локально на этом устройстве. Интернет для обучения не нужен.</p></div></div><div className="about-note"><h2>Платформы</h2><p>Windows 10 и Linux. В Kali Linux используется пакет AppImage или deb. Для запуска AppImage может понадобиться сделать файл исполняемым: <code>chmod +x Linux-Helper-*.AppImage</code>.</p><a href="https://github.com/reasqq/linux-helper" target="_blank" rel="noreferrer">Исходный код и релизы <ArrowRight size={16} /></a></div></div>}
       {xpToast && <div className="xp-toast"><Trophy size={20} /> {xpToast}</div>}
     </main>
   </div>;

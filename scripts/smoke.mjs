@@ -8,7 +8,7 @@ try {
   const page = await app.firstWindow();
   await page.setViewportSize({ width: 1440, height: 900 });
   await page.getByRole('heading', { name: /Linux понятным/ }).waitFor();
-  await page.evaluate(() => localStorage.removeItem('linux-helper-progress-v1'));
+  await page.evaluate(() => ['linux-helper-progress-v1', 'linux-helper-progress-v2'].forEach(key => localStorage.removeItem(key)));
   await page.reload();
   await mkdir('docs', { recursive: true });
   await page.screenshot({ path: 'docs/screenshot.png', fullPage: true });
@@ -47,7 +47,7 @@ try {
   await page.keyboard.press('Control+k');
   await page.getByRole('searchbox', { name: 'Поиск уроков' }).fill('chmdo');
   await page.getByRole('button', { name: /chmod: права без магии/ }).waitFor();
-  await page.evaluate(() => localStorage.removeItem('linux-helper-progress-v1'));
+  await page.evaluate(() => ['linux-helper-progress-v1', 'linux-helper-progress-v2'].forEach(key => localStorage.removeItem(key)));
   console.log('Packaged Electron smoke test passed');
 } finally {
   await app.close();
