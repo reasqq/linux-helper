@@ -1,0 +1,77 @@
+{
+  "name": "linux-helper-study",
+  "version": "1.0.0",
+  "description": "Офлайн настольный учебник Linux, Bash, сетей и Python",
+  "author": "Linux Helper contributors",
+  "license": "MIT",
+  "main": "electron/main.cjs",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "start": "install-electron && electron .",
+    "build": "tsc -b && vite build",
+    "dist:win": "npm run build && electron-builder --win portable nsis",
+    "dist:linux": "npm run build && electron-builder --linux AppImage deb",
+    "test": "vitest run",
+    "smoke:win": "node scripts/smoke.mjs"
+  },
+  "dependencies": {
+    "lucide-react": "^0.468.0",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0"
+  },
+  "devDependencies": {
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "@vitejs/plugin-react": "^4.7.0",
+    "electron": "^45.0.0",
+    "electron-builder": "^26.18.0",
+    "playwright-core": "^1.64.1",
+    "typescript": "^5.8.3",
+    "vite": "^6.2.6",
+    "vitest": "^5.0.5"
+  },
+  "build": {
+    "appId": "dev.linuxhelper.study",
+    "productName": "Linux Helper",
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "dist/**/*",
+      "electron/**/*",
+      "assets/icon.png",
+      "package.json"
+    ],
+    "asar": true,
+    "win": {
+      "icon": "assets/icon.ico",
+      "target": [
+        "portable",
+        "nsis"
+      ]
+    },
+    "portable": {
+      "artifactName": "Linux-Helper-${version}-portable-${arch}.${ext}"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "artifactName": "Linux-Helper-${version}-setup-${arch}.${ext}"
+    },
+    "linux": {
+      "icon": "assets/icon.png",
+      "category": "Education",
+      "target": [
+        "AppImage",
+        "deb"
+      ],
+      "artifactName": "Linux-Helper-${version}-${arch}.${ext}"
+    },
+    "publish": {
+      "provider": "github",
+      "owner": "reasqq",
+      "repo": "linux-helper"
+    }
+  }
+}
