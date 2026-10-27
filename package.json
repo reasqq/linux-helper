@@ -1,6 +1,6 @@
 {
   "name": "linux-helper-study",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "Офлайн настольный учебник Linux, Bash, сетей и Python",
   "author": "Linux Helper contributors <76899565+reasqq@users.noreply.github.com>",
   "license": "MIT",
@@ -10,8 +10,8 @@
     "dev": "vite",
     "start": "install-electron && electron .",
     "build": "tsc -b && vite build",
-    "dist:win": "npm run build && electron-builder --win portable nsis",
-    "dist:linux": "npm run build && electron-builder --linux AppImage deb",
+    "dist:win": "npm run build && electron-builder --publish never --win portable nsis",
+    "dist:linux": "npm run build && electron-builder --publish never --linux AppImage deb",
     "test": "vitest run",
     "smoke:win": "node scripts/smoke.mjs"
   },
